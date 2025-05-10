@@ -9,7 +9,16 @@ const fs = require('fs');
 // Create express app and server
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server);
+
+// Configure Socket.IO with CORS for development
+const io = socketIO(server, {
+  cors: {
+    // Allow connections from any origin for mobile devices
+    origin: '*',
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 
 // In production, serve static files from React's build directory
 if (process.env.NODE_ENV === 'production') {
@@ -22,6 +31,89 @@ if (process.env.NODE_ENV === 'production') {
 } else {
   // In development, serve static QR code
   app.use(express.static(path.join(__dirname, 'public')));
+  
+  // Add a simple response for the root path in development
+  app.get('/', (req, res) => {
+    res.send('Retro Arcade API Server is running. Connect from your React app at http://localhost:3001');
+  });
+
+  // Add a route for mobile users joining via QR code
+  app.get('/join', (req, res) => {
+    // Get IP address for React app
+    const networkInterfaces = os.networkInterfaces();
+    let ipAddress = req.headers.host.split(':')[0]; // Extract hostname from request
+    
+    // Use the request's hostname as fallback if we can't determine IP
+    if (ipAddress === 'localhost') {
+      // Find a non-internal IPv4 address
+      Object.keys(networkInterfaces).forEach((interfaceName) => {
+        networkInterfaces[interfaceName].forEach((iface) => {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            ipAddress = iface.address;
+          }
+        });
+      });
+    }
+
+    const reactAppUrl = `http://${ipAddress}:3001`;
+    
+    // Create a simple HTML page that helps mobile users join the game
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Retro Arcade</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #120458;
+          color: #ffffff;
+          text-align: center;
+          padding: 20px;
+          margin: 0;
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+        }
+        h1 {
+          color: #8c00ff;
+          text-shadow: 0 0 10px #8c00ff;
+          margin-bottom: 30px;
+        }
+        .button {
+          background-color: #8c00ff;
+          color: white;
+          border: none;
+          padding: 15px 30px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 18px;
+          margin: 10px;
+          cursor: pointer;
+          border-radius: 5px;
+          box-shadow: 0 0 15px #8c00ff;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Retro Arcade</h1>
+      <p>Join the game from your mobile device!</p>
+      <div>
+        <a class="button" href="${reactAppUrl}">Join Game</a>
+      </div>
+      <p style="margin-top: 40px;">If the button doesn't work, open this URL in your browser: ${reactAppUrl}</p>
+      <p style="margin-top: 20px;">Debug info: Your device is connecting from ${req.ip || 'unknown IP'}</p>
+    </body>
+    </html>
+    `;
+    
+    res.send(html);
+  });
 }
 
 // Game state
@@ -67,7 +159,9 @@ function generateQRCode() {
     });
   });
 
-  const serverUrl = `http://${ipAddress}:3000`;
+  // Create a URL that users can access the React app from mobile devices
+  // Point to a /join path which the server will handle
+  const serverUrl = `http://${ipAddress}:8080/join`;
   
   // Generate QR code and save it
   QRCode.toFile(
@@ -269,18 +363,31 @@ function endPongGame(winningSide) {
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('New player connected:', socket.id);
+  console.log('Socket handshake details:', socket.handshake.address, socket.handshake.headers.origin);
+  
+  // Log all active connections
+  console.log('Current connections:', Object.keys(io.sockets.sockets).length);
   
   // Player joins
   socket.on('playerJoin', (playerName) => {
-    players[socket.id] = {
-      id: socket.id,
-      name: playerName,
-      score: 0
-    };
+    console.log(`Player ${playerName} (${socket.id}) attempting to join the game`);
     
-    io.emit('playersList', Object.values(players));
-    socket.emit('joinSuccess', socket.id);
-    console.log(`Player ${playerName} (${socket.id}) joined the game`);
+    // Only add player if not already in the list
+    if (!players[socket.id]) {
+      players[socket.id] = {
+        id: socket.id,
+        name: playerName,
+        score: 0
+      };
+      
+      console.log(`Added new player ${playerName}. Total players:`, Object.keys(players).length);
+      io.emit('playersList', Object.values(players));
+      socket.emit('joinSuccess', socket.id);
+      console.log(`Player ${playerName} (${socket.id}) joined the game`);
+    } else {
+      console.log(`Player ${playerName} (${socket.id}) already in game, sending refresh`);
+      socket.emit('joinSuccess', socket.id);
+    }
   });
   
   // Player joins Pong game
@@ -324,9 +431,14 @@ io.on('connection', (socket) => {
     }
   });
   
-  // Player disconnects
-  socket.on('disconnect', () => {
-    console.log('Player disconnected:', socket.id);
+  // Socket error handling
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
+  });
+  
+  // Socket disconnection
+  socket.on('disconnect', (reason) => {
+    console.log('Player disconnected:', socket.id, 'Reason:', reason);
     
     // Remove from pong game if playing
     if (games.pong.players.left === socket.id) {
@@ -373,7 +485,7 @@ function updateLeaderboard() {
 }
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   const serverUrl = generateQRCode();
