@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="crt">
+        <div class="container">
+            <header>
+                <h1 class="neon-text">RETRO ARCADE</h1>
+                <div class="qr-section">
+                    <h2>Join the game!</h2>
+                    <div class="qr-container">
+                        <img src="qrcode.png" alt="QR Code to join the game" id="qrCode">
+                    </div>
+                </div>
+            </header>
+
+            <main>
+                <!-- Login screen -->
+                <section id="loginScreen" class="screen active">
+                    <div class="login-form">
+                        <h2 class="neon-text">Enter Your Name</h2>
+                        <input type="text" id="playerName" placeholder="Player Name" maxlength="10">
+                        <button id="joinButton" class="arcade-btn">JOIN ARCADE</button>
+                    </div>
+                </section>
+
+                <!-- Lobby screen -->
+                <section id="lobbyScreen" class="screen">
+                    <h2 class="neon-text">Game Lobby</h2>
+                    
+                    <div class="lobby-container">
+                        <div class="players-section">
+                            <h3>Players Online</h3>
+                            <ul id="playersList"></ul>
+                        </div>
+                        
+                        <div class="games-section">
+                            <h3>Available Games</h3>
+                            <div class="game-card" id="pongGame">
+                                <div class="game-title">PONG</div>
+                                <div class="game-thumbnail">
+                                    <div class="pong-preview">
+                                        <div class="pong-paddle left"></div>
+                                        <div class="pong-ball"></div>
+                                        <div class="pong-paddle right"></div>
+                                    </div>
+                                </div>
+                                <button class="arcade-btn join-game" data-game="pong">PLAY PONG</button>
+                            </div>
+                            
+                            <!-- Additional games can be added here -->
+                        </div>
+                    </div>
+                    
+                    <div class="leaderboard-section">
+                        <h3 class="neon-text">Leaderboard</h3>
+                        <table id="leaderboardTable">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Player</th>
+                                    <th>Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardBody">
+                                <!-- Leaderboard entries will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Pong game screen -->
+                <section id="pongScreen" class="screen">
+                    <div class="game-header">
+                        <h2 class="neon-text">PONG</h2>
+                        <div class="score-container">
+                            <div id="leftScore">0</div>
+                            <div class="score-divider">:</div>
+                            <div id="rightScore">0</div>
+                        </div>
+                        <button id="backToLobby" class="arcade-btn small">BACK TO LOBBY</button>
+                    </div>
+                    
+                    <div class="game-container">
+                        <div id="pongSelectSide" class="game-overlay">
+                            <h3>Choose your side</h3>
+                            <div class="side-selection">
+                                <button id="selectLeft" class="arcade-btn side-btn">LEFT</button>
+                                <button id="selectRight" class="arcade-btn side-btn">RIGHT</button>
+                            </div>
+                        </div>
+                        <div id="waitingOverlay" class="game-overlay">
+                            <h3>Waiting for opponent...</h3>
+                            <div class="loader"></div>
+                        </div>
+                        <div id="gameEndOverlay" class="game-overlay">
+                            <h3 id="winnerMessage">Player wins!</h3>
+                            <button id="playAgain" class="arcade-btn">PLAY AGAIN</button>
+                        </div>
+                        <canvas id="pongCanvas" width="800" height="600"></canvas>
+                    </div>
+                </section>
+            </main>
+
+            <footer>
+                <p>© 2025 Retro Arcade - Press Start to Play!</p>
+            </footer>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 

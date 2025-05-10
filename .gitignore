@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+
+# Generated QR code
+public/qrcode.png
+
+# IDE/Editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Build files
+dist/
+build/
+
+# Logs
+logs/
+*.log 
