@@ -133,12 +133,27 @@ export const GameProvider = ({ children }) => {
 
   // Send paddle position to server
   const updatePaddlePosition = (position) => {
+    // Make sure position is a valid number
+    if (isNaN(position)) {
+      console.error('Invalid paddle position:', position);
+      return;
+    }
+    
+    // Ensure the position is within bounds
+    const gameHeight = 600; // Match the GAME_HEIGHT constant from PongGame.js
+    const paddleHeight = 100; // Match the PADDLE_HEIGHT constant from PongGame.js
+    
+    const boundedPosition = Math.max(0, Math.min(gameHeight - paddleHeight, position));
+    
     if (socket && pongGame.gameActive) {
+      console.log('Updating paddle position to:', boundedPosition, 'Side:', pongGame.currentSide);
       setPongGame(prev => ({
         ...prev,
-        paddleY: position
+        paddleY: boundedPosition
       }));
-      socket.emit('paddleMove', position);
+      socket.emit('paddleMove', boundedPosition);
+    } else {
+      console.log('Cannot update paddle: socket connected?', !!socket, 'game active?', pongGame.gameActive);
     }
   };
 

@@ -1,79 +1,81 @@
 # Retro Arcade in a Browser
 
-A multiplayer retro arcade system that runs in the browser, letting players join via QR code and play classic games like Pong in real-time with a nostalgic CRT-styled interface.
-
-![Retro Arcade](public/qrcode.png)
+A browser-based multiplayer retro arcade game platform featuring classic games like Pong with mobile device support for controllers.
 
 ## Features
 
-- **Multiplayer Lobby**: See who's connected and choose a game to play
-- **Real-time Pong**: Classic Pong game with multiplayer support
-- **Leaderboard**: Track scores and wins across players
-- **Retro UI**: Pixel fonts, CRT filter, and neon aesthetics
-- **QR Code Joining**: Easy access for new players via generated QR code
-- **Mobile Support**: Play on any device with a modern browser
+- Classic Pong game with multiplayer support
+- Mobile device integration as controllers via QR code scanning
+- Real-time gameplay using Socket.IO
+- Responsive design for various screen sizes
+- Leaderboard system to track player scores
 
 ## Tech Stack
 
-- **Frontend**: HTML, CSS, JavaScript
-- **Graphics**: HTML5 Canvas
-- **Backend**: Node.js, Express
+- **Frontend**: React.js
+- **Backend**: Node.js with Express
 - **Real-time Communication**: Socket.IO
-- **QR Code Generation**: qrcode library
+- **QR Code Generation**: qrcode
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v14 or newer)
-- npm (Node Package Manager)
-
-### Installation
+## Installation
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/retro-arcade-in-a-browser.git
-   cd retro-arcade-in-a-browser
+   git clone https://github.com/yourusername/Retro-Arcade-in-a-Browser.git
+   cd Retro-Arcade-in-a-Browser
    ```
 
-2. Install dependencies:
+2. Install server dependencies:
    ```
    npm install
    ```
 
-3. Start the server:
+3. Install client dependencies:
    ```
-   npm start
-   ```
-
-4. Open your browser and navigate to:
-   ```
-   http://localhost:3000
+   cd client
+   npm install
+   cd ..
    ```
 
-### Joining a Game
+4. Create a `.env` file in the root directory (optional):
+   ```
+   PORT=9876
+   NODE_ENV=development
+   ```
 
-1. When the server starts, it automatically generates a QR code that lets other devices on the same network join.
-2. The QR code is displayed on the main page and saved as `public/qrcode.png`.
-3. Other players can scan this code to join from their devices.
+## Running the Application
 
-## How to Play Pong
+1. Start the development server and client:
+   ```
+   npm run dev
+   ```
 
-1. Enter your name on the login screen.
-2. From the lobby, click "PLAY PONG".
-3. Choose a side (LEFT or RIGHT).
-4. Wait for another player to join the other side.
-5. Use arrow keys (↑/↓) to move your paddle up and down.
-6. On mobile, touch and drag to move the paddle.
-7. First player to reach 10 points wins!
+   Or run server and client separately:
+   ```
+   npm run server
+   npm run client
+   ```
 
-## Extending the Arcade
+2. Open your browser and navigate to:
+   - React app: http://localhost:3001
+   - Server: http://localhost:9876
 
-### Adding More Games
+3. To use a mobile device as a controller, scan the QR code displayed on the game screen with your mobile device.
 
-1. Create new game screens in `public/index.html`.
-2. Add game logic in new JavaScript files.
-3. Update the server to handle the new game's socket communications.
+## How to Play
+
+1. Open the application in your browser
+2. Select "Pong" from the game menu
+3. Choose which side you want to play (left or right)
+4. Use arrow keys or W/S keys to move your paddle up and down
+5. For mobile controllers, scan the QR code and use touch controls on your device
+6. First player to reach 10 points wins
+
+## Development
+
+- Server code is in `server.js` in the root directory
+- React frontend code is in the `client` directory
+- Game logic is primarily handled on the server side with Socket.IO for real-time communication
 
 ## License
 
@@ -81,6 +83,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- Classic arcade game designers who inspired this project
-- The Socket.IO team for making real-time communication easy
-- All retro game enthusiasts! 
+- Inspired by classic arcade games
+- Built with modern web technologies for a retro gaming experience
+
+
+- Built with modern web technologies for a retro gaming experience
+

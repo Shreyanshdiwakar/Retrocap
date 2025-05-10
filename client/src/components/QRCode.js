@@ -26,13 +26,13 @@ const QRImage = styled.img`
 `;
 
 const QRCode = () => {
-  const [qrImageUrl, setQRImageUrl] = useState('/qrcode.png');
+  const [qrImageUrl, setQRImageUrl] = useState('/static/qrcode.png');
   
   useEffect(() => {
     // If we're in development mode, update the URL to include the timestamp
     // to avoid caching when the QR code changes
     if (process.env.NODE_ENV === 'development') {
-      setQRImageUrl(`/qrcode.png?t=${new Date().getTime()}`);
+      setQRImageUrl(`/static/qrcode.png?t=${new Date().getTime()}`);
     }
   }, []);
 

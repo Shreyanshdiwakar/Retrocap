@@ -1,119 +1,135 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 
-// Create the context
-const SocketContext = createContext(null);
-
-// URL for the socket connection - use dynamic IP detection
-const getSocketUrl = () => {
+// Get the host dynamically - this will work on both computer and mobile devices
+const getSocketURL = () => {
   // In production, use the current origin
   if (process.env.NODE_ENV === 'production') {
     return window.location.origin;
   }
-  
-  // In development, try to use the IP address shown in Network URL
-  // This ensures both localhost and external devices connect to the same server
-  const hostName = window.location.hostname;
-  if (hostName !== 'localhost' && hostName !== '127.0.0.1') {
-    return `http://${hostName}:8080`;
+
+  // In development, if we're accessing from a phone/external device, use the IP address
+  const currentHost = window.location.hostname;
+  if (currentHost !== 'localhost') {
+    return `http://${currentHost}:9876`;
   }
-  
-  // Fallback for localhost development
-  return 'http://localhost:8080';
+
+  // Localhost development
+  return 'http://localhost:9876';
 };
+
+const SOCKET_URL = getSocketURL();
+
+const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const [connected, setConnected] = useState(false);
-  const [playerId, setPlayerId] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const reconnectAttemptsRef = useRef(0);
+  const MAX_RECONNECT_ATTEMPTS = 5;
+  
+  // Add back the players state and playerId
   const [players, setPlayers] = useState([]);
+  const [playerId, setPlayerId] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
 
+  // Initialize socket connection
   useEffect(() => {
-    // Initialize socket connection
-    const SOCKET_URL = getSocketUrl();
-    console.log('Attempting to connect to Socket.IO server at:', SOCKET_URL);
+    console.log(`Connecting to Socket.IO server at: ${SOCKET_URL}`);
     
-    const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
+    const socketInstance = io(SOCKET_URL, {
+      reconnection: true,
+      reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
       reconnectionDelay: 1000,
-      withCredentials: true
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      transports: ['websocket', 'polling'],
+    });
+
+    socketInstance.on('connect', () => {
+      console.log('Socket connected with ID:', socketInstance.id);
+      setIsConnected(true);
+      reconnectAttemptsRef.current = 0;
+      setReconnectAttempts(0);
+    });
+
+    socketInstance.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      setIsConnected(false);
+      
+      if (reason === 'io server disconnect') {
+        // Server initiated disconnect, try to reconnect
+        socketInstance.connect();
+      }
+    });
+
+    socketInstance.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      reconnectAttemptsRef.current += 1;
+      setReconnectAttempts(reconnectAttemptsRef.current);
+      
+      if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+        console.error('Max reconnection attempts reached');
+        // You might want to show a user-friendly message here
+      }
     });
     
-    // Socket event handlers
-    newSocket.on('connect', () => {
-      console.log('Connected to server with ID:', newSocket.id);
-      setConnected(true);
-      setSocket(newSocket);
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error.message);
-    });
-
-    newSocket.on('connect_timeout', () => {
-      console.error('Socket connection timeout');
-    });
-
-    newSocket.on('reconnect_attempt', (attemptNumber) => {
-      console.log(`Attempting to reconnect (${attemptNumber})`);
-    });
-
-    newSocket.on('disconnect', (reason) => {
-      console.log('Disconnected from server, reason:', reason);
-      setConnected(false);
-    });
-
-    newSocket.on('playersList', (playersList) => {
+    // Add listeners for player events
+    socketInstance.on('playersList', (playersList) => {
       console.log('Received players list:', playersList);
       setPlayers(playersList);
     });
 
-    newSocket.on('joinSuccess', (id) => {
+    socketInstance.on('joinSuccess', (id) => {
       console.log('Join successful, assigned ID:', id);
       setPlayerId(id);
     });
 
-    newSocket.on('leaderboardUpdate', (data) => {
+    socketInstance.on('leaderboardUpdate', (data) => {
+      console.log('Received leaderboard update:', data);
       setLeaderboard(data);
     });
 
-    // Clean up on unmount
+    setSocket(socketInstance);
+
     return () => {
-      newSocket.disconnect();
+      socketInstance.off('playersList');
+      socketInstance.off('joinSuccess');
+      socketInstance.off('leaderboardUpdate');
+      socketInstance.close();
     };
   }, []);
 
-  // Function to join the game with a player name
-  const joinGame = (playerName) => {
+  // Add the joinGame function
+  const joinGame = useCallback((playerName) => {
     if (socket && playerName.trim()) {
-      console.log('Emitting playerJoin event with name:', playerName);
+      console.log('Attempting to join game with name:', playerName);
       socket.emit('playerJoin', playerName);
     } else {
       console.error('Cannot join game: socket not connected or player name missing');
       if (!socket) console.error('Socket is not initialized');
       if (!playerName.trim()) console.error('Player name is empty');
     }
+  }, [socket]);
+
+  const value = {
+    socket,
+    isConnected,
+    reconnectAttempts,
+    players,
+    playerId,
+    leaderboard,
+    joinGame
   };
 
   return (
-    <SocketContext.Provider 
-      value={{ 
-        socket, 
-        connected, 
-        playerId, 
-        players, 
-        leaderboard, 
-        joinGame 
-      }}
-    >
+    <SocketContext.Provider value={value}>
       {children}
     </SocketContext.Provider>
   );
 };
 
-// Hook to use the socket context
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (!context) {

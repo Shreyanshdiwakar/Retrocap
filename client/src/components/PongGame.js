@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { useGame } from '../context/GameContext';
 import useKeyboard from '../hooks/useKeyboard';
@@ -147,39 +147,15 @@ const PongGame = () => {
   
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
-  const keys = useKeyboard({ preventDefault: false });
+  const keys = useKeyboard({ preventDefault: true });
 
-  // Game loop
+  // Debug keyboard state
   useEffect(() => {
-    if (!pongGame.gameActive) return;
-    
-    const handleFrame = () => {
-      // Move paddle based on keyboard input
-      if (keys.ArrowUp && pongGame.paddleY > 0) {
-        updatePaddlePosition(pongGame.paddleY - PADDLE_SPEED);
-      }
-      if (keys.ArrowDown && pongGame.paddleY < GAME_HEIGHT - PADDLE_HEIGHT) {
-        updatePaddlePosition(pongGame.paddleY + PADDLE_SPEED);
-      }
-      
-      // Draw the game
-      drawGame();
-      
-      // Continue animation
-      animationRef.current = requestAnimationFrame(handleFrame);
-    };
-    
-    animationRef.current = requestAnimationFrame(handleFrame);
-    
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [pongGame.gameActive, keys, pongGame.paddleY, updatePaddlePosition]);
+    console.log('Keyboard state:', keys);
+  }, [keys]);
 
-  // Draw the game on canvas
-  const drawGame = () => {
+  // Define drawGame before we use it in useEffect
+  const drawGame = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -223,10 +199,51 @@ const PongGame = () => {
     ctx.arc(pongGame.ballX, pongGame.ballY, BALL_RADIUS, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
-  };
+  }, [pongGame.ballX, pongGame.ballY, pongGame.currentSide, pongGame.opponentPaddleY, pongGame.paddleY]);
+
+  // Game loop
+  useEffect(() => {
+    if (!pongGame.gameActive) return;
+    
+    const handleFrame = () => {
+      // Move paddle based on keyboard input
+      if (keys.ArrowUp && pongGame.paddleY > 0) {
+        console.log('Moving paddle up');
+        updatePaddlePosition(pongGame.paddleY - PADDLE_SPEED);
+      }
+      if (keys.ArrowDown && pongGame.paddleY < GAME_HEIGHT - PADDLE_HEIGHT) {
+        console.log('Moving paddle down');
+        updatePaddlePosition(pongGame.paddleY + PADDLE_SPEED);
+      }
+      
+      // Also check for WASD controls as an alternative
+      if (keys.w && pongGame.paddleY > 0) {
+        console.log('Moving paddle up (w key)');
+        updatePaddlePosition(pongGame.paddleY - PADDLE_SPEED);
+      }
+      if (keys.s && pongGame.paddleY < GAME_HEIGHT - PADDLE_HEIGHT) {
+        console.log('Moving paddle down (s key)');
+        updatePaddlePosition(pongGame.paddleY + PADDLE_SPEED);
+      }
+      
+      // Draw the game
+      drawGame();
+      
+      // Continue animation
+      animationRef.current = requestAnimationFrame(handleFrame);
+    };
+    
+    animationRef.current = requestAnimationFrame(handleFrame);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [pongGame.gameActive, keys, pongGame.paddleY, updatePaddlePosition, drawGame]);
 
   // Touch controls for mobile
-  const handleTouchMove = (e) => {
+  const handleTouchMove = useCallback((e) => {
     if (!pongGame.gameActive) return;
     
     e.preventDefault();
@@ -241,7 +258,7 @@ const PongGame = () => {
     if (y >= 0 && y <= GAME_HEIGHT - PADDLE_HEIGHT) {
       updatePaddlePosition(y);
     }
-  };
+  }, [pongGame.gameActive, updatePaddlePosition]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -252,7 +269,7 @@ const PongGame = () => {
         canvas.removeEventListener('touchmove', handleTouchMove);
       };
     }
-  }, [pongGame.gameActive]);
+  }, [pongGame.gameActive, handleTouchMove]);
 
   return (
     <GameContainer>

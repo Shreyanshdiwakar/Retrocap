@@ -8,6 +8,8 @@ import Footer from './components/Footer';
 import LoginScreen from './components/LoginScreen';
 import LobbyScreen from './components/LobbyScreen';
 import PongGame from './components/PongGame';
+import { useDeviceInfo } from './hooks/useDeviceInfo';
+import './App.css';
 
 // Import Google Font
 const googleFontLink = document.createElement('link');
@@ -50,21 +52,29 @@ const ScreenSwitcher = () => {
   }
 };
 
+// Component to handle device info
+const DeviceInfoHandler = ({ children }) => {
+  useDeviceInfo();
+  return children;
+};
+
 function App() {
   return (
     <>
       <GlobalStyles />
       <SocketProvider>
         <GameProvider>
-          <CRTEffect className="crt">
-            <Container className="container">
-              <Header />
-              <MainContent>
-                <ScreenSwitcher />
-              </MainContent>
-              <Footer />
-            </Container>
-          </CRTEffect>
+          <DeviceInfoHandler>
+            <CRTEffect className="crt">
+              <Container className="container">
+                <Header />
+                <MainContent>
+                  <ScreenSwitcher />
+                </MainContent>
+                <Footer />
+              </Container>
+            </CRTEffect>
+          </DeviceInfoHandler>
         </GameProvider>
       </SocketProvider>
     </>
