@@ -4,14 +4,25 @@ const socketIO = require('socket.io');
 const path = require('path');
 const QRCode = require('qrcode');
 const os = require('os');
+const fs = require('fs');
 
 // Create express app and server
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
+// In production, serve static files from React's build directory
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'client/build')));
+  
+  // For any route not matched by API, serve the React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+  });
+} else {
+  // In development, serve static QR code
+  app.use(express.static(path.join(__dirname, 'public')));
+}
 
 // Game state
 const players = {};
@@ -34,6 +45,12 @@ const games = {
 };
 
 const leaderboard = [];
+
+// Create the public directory if it doesn't exist
+const publicDir = path.join(__dirname, 'public');
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir);
+}
 
 // Generate a QR code for the server address
 function generateQRCode() {
